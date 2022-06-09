@@ -1,0 +1,16 @@
+select 	top 60000
+	af.event_time,
+	af.action_id,
+	af.session_server_principal_name,
+	   af.server_principal_name,
+	   af.server_instance_name,
+	   af.database_name,
+	   af.schema_name,
+	   af.object_name,
+	   af.statement,
+           af.database_name
+from fn_get_audit_file ((SELECT SUBSTRING(audit_file_path,0,charindex(name,audit_file_path))+name
+  FROM [sys].[dm_server_audit_status]
+  where name like '%data_change%'),default,default) af	
+where action_id in ('########') and event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0));

@@ -1,0 +1,2 @@
+select distinct action_id from fn_get_audit_file ('H:\Audit\Audit_all_data_change_*',default,default) af
+where event_time>=convert(varchar(10),getdate()-30,120);

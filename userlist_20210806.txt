@@ -1,0 +1,103 @@
+declare @name nvarchar(50)
+declare @num int
+DECLARE @SQL NVARCHAR(500)
+
+create table #datachange_actions (username nvarchar(500),datachange_action_id nvarchar(500))
+
+set @num=0
+declare cursorTemp  cursor for select [session_server_principal_name] from [tempdb].[dbo].[all_datachange]
+open cursorTemp
+fetch next from cursorTemp into @name 
+while @@FETCH_STATUS=0
+	begin
+	    SELECT @SQL=ISNULL(@SQL+';','')+a.[action_id] FROM [tempdb].[dbo].[all_datachange] a WHERE a.[session_server_principal_name]=@name
+		insert into #datachange_actions select a.[session_server_principal_name],@SQL "action_id" from [tempdb].[dbo].[all_datachange] a where a.[session_server_principal_name]=@name
+		set @num =@num+1
+		set @SQL=NULL
+		fetch next from cursorTemp into @name 
+	end
+close cursorTemp
+DEALLOCATE cursorTemp
+select distinct * from #datachange_actions;
+--drop table #datachange_actions;
+set @name=null
+set @num=null
+set @SQL=null
+
+--fetch data for permissionchange users information
+
+create table #permissionchange_actions (username nvarchar(500),permissionchange_action_id nvarchar(500))
+
+set @num=0
+declare cursorTemp  cursor for select [session_server_principal_name] from [tempdb].[dbo].[all_Permission_Changes]
+open cursorTemp
+fetch next from cursorTemp into @name 
+while @@FETCH_STATUS=0
+	begin
+	    SELECT @SQL=ISNULL(@SQL+';','')+a.[action_id] FROM [tempdb].[dbo].[all_Permission_Changes] a WHERE a.[session_server_principal_name]=@name
+		insert into #permissionchange_actions select a.[session_server_principal_name],@SQL "action_id" from [tempdb].[dbo].[all_Permission_Changes] a where a.[session_server_principal_name]=@name
+		set @num =@num+1
+		set @SQL=NULL
+		fetch next from cursorTemp into @name 
+	end
+close cursorTemp
+DEALLOCATE cursorTemp
+select distinct * from #permissionchange_actions;
+--drop table #permissionchange_actions;
+set @name=null
+set @num=null
+set @SQL=null
+
+
+--fetch data for loginout users information
+
+create table #loginout_actions (username nvarchar(500),loginout_action_id nvarchar(500))
+
+set @num=0
+declare cursorTemp  cursor for select [session_server_principal_name] from [tempdb].[dbo].[all_loginout]
+open cursorTemp
+fetch next from cursorTemp into @name 
+while @@FETCH_STATUS=0
+	begin
+	    SELECT @SQL=ISNULL(@SQL+';','')+a.[action_id] FROM [tempdb].[dbo].[all_loginout] a WHERE a.[session_server_principal_name]=@name
+		insert into #loginout_actions select a.[session_server_principal_name],@SQL "action_id" from [tempdb].[dbo].[all_loginout] a where a.[session_server_principal_name]=@name
+		set @num =@num+1
+		set @SQL=NULL
+		fetch next from cursorTemp into @name 
+	end
+close cursorTemp
+DEALLOCATE cursorTemp
+select distinct * from #loginout_actions;
+--drop table #loginout_actions;
+set @name=null
+set @num=null
+set @SQL=null
+
+
+select aa.* into #userlist from 
+(select a.name from sys.server_principals a 
+where a.is_disabled=0 and type in ('U','S')
+union
+select b.session_server_principal_name from all_loginout b
+union
+select c.session_server_principal_name from all_loginout_last_month c
+union
+select d.session_server_principal_name from all_datachange d
+union
+select e.session_server_principal_name from all_datachange_last_month e
+union
+select f.session_server_principal_name from all_Permission_Changes f
+union
+select g.session_server_principal_name from all_Permission_Changes_last_month g) aa;
+
+select a.name from #userlist a
+
+
+select aaa.name,aaa.loginout_action_id,aaa.permissionchange_action_id,bbb.datachange_action_id from 
+(select aa.name,aa.loginout_action_id,bb.permissionchange_action_id from 
+(select a.name,b.loginout_action_id 
+from #userlist a 
+left join (select distinct * from #loginout_actions) b 
+on a.name=b.username) aa left join (select distinct * from #permissionchange_actions c) bb
+on aa.name=bb.username) aaa left join (select distinct * from #datachange_actions d) bbb
+on aaa.name=bbb.username

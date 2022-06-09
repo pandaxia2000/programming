@@ -1,0 +1,11 @@
+select top 1000
+af.session_server_principal_name,
+af.server_principal_name,
+af.server_instance_name,
+af.database_name,
+af.schema_name,
+af.object_name,
+af.statement,
+af.event_time
+from fn_get_audit_file ('E:\Audit\*All_login_logout*',default,default) af
+where action_id not in ('LGO','LGIS','AUSC') and event_time>=convert(varchar(10),getdate()-30,120);

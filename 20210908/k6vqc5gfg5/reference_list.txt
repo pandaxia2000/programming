@@ -1,0 +1,2 @@
+select distinct a.action_id,name from sys.dm_audit_actions a where a.action_id in (
+select action_id from [master].[dbo].[all_actions])

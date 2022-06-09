@@ -1,0 +1,10 @@
+select  top 1000
+event_time,
+action_id,
+session_server_principal_name,
+server_instance_name,
+database_name,
+object_name,
+statement
+from fn_get_audit_file ('H:\audit\*Permission_Change_*',default,default) af
+where action_id in ('########') and event_time>=convert(varchar(10),getdate()-30,120);

@@ -1,0 +1,18 @@
+select top 60000
+af.session_server_principal_name,
+af.server_principal_name,
+af.server_instance_name,
+af.database_name,
+af.schema_name,
+af.object_name,
+af.statement,
+af.event_time,
+af.database_name
+from [DB_AUDIT_LOGS].[dbo].[last_month_records_loginout] af
+where action_id not in ('LGO','LGIS','AUSC') 
+and event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0))
+and af.server_principal_name like 'ONEABBOTT%'
+and af.server_principal_name not like '%SVC%'
+and af.server_principal_name not like '%$%'
+and af.server_principal_name not like '%PANCX15%';

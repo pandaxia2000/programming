@@ -1,0 +1,3 @@
+select distinct action_id from fn_get_audit_file ('e:\audit\Audit_MSCRM_Permission_Changes_*',default,default) af 
+
+where event_time>=convert(varchar(10),getdate()-30,120);

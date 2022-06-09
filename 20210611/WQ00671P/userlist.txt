@@ -1,0 +1,66 @@
+select distinct action_id, session_server_principal_name into #all_loginout
+from fn_get_audit_file('H:\Audit\*login_logout*',default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+select distinct action_id, session_server_principal_name into #all_datachange
+from fn_get_audit_file('H:\Audit\Audit_all_data_change_*',default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+select distinct action_id, session_server_principal_name into #all_Permission_Changes
+from fn_get_audit_file('H:\audit\*Permission_Change_*',default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+select a.name,a.type_desc,a.is_disabled, a.create_date,a.modify_date into #userlist
+from sys.server_principals a 
+where a.is_disabled=0 and type in ('U','S');
+
+select a.name,a.type_desc,a.is_disabled,a.create_date,a.modify_date, 
+'LGIF'= case when exists (select 1 from #all_loginout b where b.session_server_principal_name=a.name and b.action_id='LGIF') then 'Y' end,
+'LGIS'= case when exists (select 1 from #all_loginout c where c.session_server_principal_name=a.name and c.action_id='LGIS') then 'Y' end,
+'LGO'= case when exists (select 1 from #all_loginout d where d.session_server_principal_name=a.name and d.action_id='LGO') then 'Y' end,
+'DL'= case when exists (select 1 from #all_datachange e where e.session_server_principal_name=a.name and e.action_id='DL') then 'Y' end,
+'EX'= case when exists (select 1 from #all_datachange f where f.session_server_principal_name=a.name and f.action_id='EX') then 'Y' end,
+'IN'= case when exists (select 1 from #all_datachange g where g.session_server_principal_name=a.name and g.action_id='IN') then 'Y' end,
+'UP'= case when exists (select 1 from #all_datachange h where h.session_server_principal_name=a.name and h.action_id='UP') then 'Y' end,
+'ADDP'= case when exists (select 1 from #all_loginout bbb where bbb.session_server_principal_name=a.name and bbb.action_id='ADDP') then 'Y' end,
+'AL'= case when exists (select 1 from #all_loginout ccc where ccc.session_server_principal_name=a.name and ccc.action_id='AL') then 'Y' end,
+'APRL'= case when exists (select 1 from #all_loginout ddd where ddd.session_server_principal_name=a.name and ddd.action_id='APRL') then 'Y' end,
+'AS'= case when exists (select 1 from #all_loginout eee where eee.session_server_principal_name=a.name and eee.action_id='AS') then 'Y' end,
+'AUTH'= case when exists (select 1 from #all_loginout fff where fff.session_server_principal_name=a.name and fff.action_id='AUTH') then 'Y' end,
+'BA'= case when exists (select 1 from #all_loginout ggg where ggg.session_server_principal_name=a.name and ggg.action_id='BA') then 'Y' end,
+'CO'= case when exists (select 1 from #all_loginout hhh where hhh.session_server_principal_name=a.name and hhh.action_id='CO') then 'Y' end,
+'CP'= case when exists (select 1 from #all_loginout i where i.session_server_principal_name=a.name and i.action_id='CP') then 'Y' end,
+'CR'= case when exists (select 1 from #all_loginout j where j.session_server_principal_name=a.name and j.action_id='CR') then 'Y' end,
+'D'= case when exists (select 1 from #all_loginout k where k.session_server_principal_name=a.name and k.action_id='D') then 'Y' end,
+'DPRL'= case when exists (select 1 from #all_loginout l where l.session_server_principal_name=a.name and l.action_id='DPRL') then 'Y' end,
+'DR'= case when exists (select 1 from #all_loginout m where m.session_server_principal_name=a.name and m.action_id='DR') then 'Y' end,
+'DWC'= case when exists (select 1 from #all_loginout n where n.session_server_principal_name=a.name and n.action_id='DWC') then 'Y' end,
+'G'= case when exists (select 1 from #all_loginout o where o.session_server_principal_name=a.name and o.action_id='G') then 'Y' end,
+'GRDB'= case when exists (select 1 from #all_loginout p where p.session_server_principal_name=a.name and p.action_id='GRDB') then 'Y' end,
+'GRDO'= case when exists (select 1 from #all_loginout q where q.session_server_principal_name=a.name and q.action_id='GRDO') then 'Y' end,
+'GRO'= case when exists (select 1 from #all_loginout r where r.session_server_principal_name=a.name and r.action_id='GRO') then 'Y' end,
+'GWG'= case when exists (select 1 from #all_loginout s where s.session_server_principal_name=a.name and s.action_id='GWG') then 'Y' end,
+'IMDP'= case when exists (select 1 from #all_loginout t where t.session_server_principal_name=a.name and t.action_id='IMDP') then 'Y' end,
+'IMP'= case when exists (select 1 from #all_loginout u where u.session_server_principal_name=a.name and u.action_id='IMP') then 'Y' end,
+'MNDB'= case when exists (select 1 from #all_loginout v where v.session_server_principal_name=a.name and v.action_id='MNDB') then 'Y' end,
+'MNDO'= case when exists (select 1 from #all_loginout w where w.session_server_principal_name=a.name and w.action_id='MNDO') then 'Y' end,
+'MNDP'= case when exists (select 1 from #all_loginout z where z.session_server_principal_name=a.name and z.action_id='MNDP') then 'Y' end,
+'MNO'= case when exists (select 1 from #all_loginout y where y.session_server_principal_name=a.name and y.action_id='MNO') then 'Y' end,
+'OP'= case when exists (select 1 from #all_loginout zzz where zzz.session_server_principal_name=a.name and zzz.action_id='OP') then 'Y' end,
+'OPDB'= case when exists (select 1 from #all_loginout aa where aa.session_server_principal_name=a.name and aa.action_id='OPDB') then 'Y' end,
+'R'= case when exists (select 1 from #all_loginout bb where bb.session_server_principal_name=a.name and bb.action_id='R') then 'Y' end,
+'RS'= case when exists (select 1 from #all_loginout cc where cc.session_server_principal_name=a.name and cc.action_id='RS') then 'Y' end,
+'RWC'= case when exists (select 1 from #all_loginout dd where dd.session_server_principal_name=a.name and dd.action_id='RWC') then 'Y' end,
+'RWG'= case when exists (select 1 from #all_loginout ee where ee.session_server_principal_name=a.name and ee.action_id='RWG') then 'Y' end,
+'SPLN'= case when exists (select 1 from #all_loginout ff where ff.session_server_principal_name=a.name and ff.action_id='SPLN') then 'Y' end,
+'SUQN'= case when exists (select 1 from #all_loginout gg where gg.session_server_principal_name=a.name and gg.action_id='SUQN') then 'Y' end,
+'TO'= case when exists (select 1 from #all_loginout hh where hh.session_server_principal_name=a.name and hh.action_id='TO') then 'Y' end,
+'TODB'= case when exists (select 1 from #all_loginout ii where ii.session_server_principal_name=a.name and ii.action_id='TODB') then 'Y' end,
+'TODO'= case when exists (select 1 from #all_loginout jj where jj.session_server_principal_name=a.name and jj.action_id='TODO') then 'Y' end,
+'TOO'= case when exists (select 1 from #all_loginout kk where kk.session_server_principal_name=a.name and kk.action_id='TOO') then 'Y' end,
+'TRO'= case when exists (select 1 from #all_loginout ll where ll.session_server_principal_name=a.name and ll.action_id='TRO') then 'Y' end,
+'USAF'= case when exists (select 1 from #all_loginout mm where mm.session_server_principal_name=a.name and mm.action_id='USAF') then 'Y' end,
+'USLG'= case when exists (select 1 from #all_loginout nn where nn.session_server_principal_name=a.name and nn.action_id='USLG') then 'Y' end,
+'VDST'= case when exists (select 1 from #all_loginout oo where oo.session_server_principal_name=a.name and oo.action_id='VDST') then 'Y' end,
+'VW'= case when exists (select 1 from #all_loginout pp where pp.session_server_principal_name=a.name and pp.action_id='VW') then 'Y' end
+from #userlist a;

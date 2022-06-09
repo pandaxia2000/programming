@@ -1,0 +1,82 @@
+select 
+           [event_time]
+		   ,[server_principal_name]
+		   ,[database_name]
+           ,[statement]
+		           ,[alter_action] = CASE CHARINDEX ('alter', [statement] )
+                           WHEN 1 THEN 'alter'
+                           WHEN 0 THEN ''
+						   else ''
+                       END
+		           ,[delete_action] = CASE CHARINDEX ('delete', [statement] )
+                           WHEN 1 THEN 'delete'
+                           WHEN 0 THEN ''
+						   else ''
+                       END
+		           ,[update_action] = CASE CHARINDEX ('update', [statement] )
+                           WHEN 1 THEN 'update'
+                           WHEN 0 THEN ''
+						   else ''
+                       END
+		           ,[insert_action] = CASE CHARINDEX ('insert', [statement] )
+                           WHEN 1 THEN 'insert'
+                           WHEN 0 THEN ''
+						   else ''
+                       END
+		           ,[drop_action] = CASE CHARINDEX ('drop', [statement] )
+                           WHEN 1 THEN 'drop'
+                           WHEN 0 THEN ''
+						   else ''
+                       END
+		           ,[create_action] = CASE CHARINDEX ('create', [statement] )
+                           WHEN 1 THEN 'create'
+                           WHEN 0 THEN ''
+						   else ''
+                       END
+		           ,[exec_action] = CASE CHARINDEX ('exec', [statement] )
+                           WHEN 1 THEN 'exec'
+                           WHEN 0 THEN ''
+						   else ''
+                       END into #l_stage1
+		   from [dbo].[last_month_audit_records_for_privilege_accounts];
+
+
+
+
+
+DECLARE @alter NVARCHAR(50)
+DECLARE @delete NVARCHAR(50)
+DECLARE @update NVARCHAR(50)
+DECLARE @insert NVARCHAR(50)
+DECLARE @drop NVARCHAR(50)
+DECLARE @create NVARCHAR(50)
+DECLARE @exec NVARCHAR(50)
+DECLARE @actions NVARCHAR(500)
+DECLARE @username NVARCHAR(50)
+declare @database_name nvarchar(50)
+
+create table #l_actions (username nvarchar(500),"Audit Trace Period" nvarchar(500),database_name nvarchar(500),actions nvarchar(500))
+
+
+begin
+
+ select @alter=a.alter_action from (select distinct alter_action from #l_stage1 where alter_action <>'') a;
+ select @delete=b.delete_action from  (select distinct delete_action from #l_stage1 where delete_action <>'') b;
+ select @update=c.update_action from  (select distinct update_action from #l_stage1 where update_action <>'') c;
+ select @insert=d.insert_action from  (select distinct insert_action from #l_stage1 where insert_action <>'') d;
+ select @drop=e.drop_action from  (select distinct drop_action from #l_stage1 where drop_action <>'') e;
+ select @create=f.create_action from  (select distinct create_action from #l_stage1 where create_action <>'') f;
+ select @exec=g.exec_action from  (select distinct exec_action from #l_stage1 where exec_action <>'') g;
+ select @username=h.server_principal_name from  (select distinct server_principal_name from #l_stage1 where exec_action <>'') h;
+ select @database_name=i.database_name from (select distinct database_name from #l_stage1 where exec_action <>'') i;
+
+select @actions=ISNULL(@alter+';','')+ISNULL(@delete+';','')+ISNULL(@update+';','')+ISNULL(@insert+';','')+ISNULL(@drop+';','')+ISNULL(@create+';','')+ISNULL(@exec+';','')
+
+
+insert into #l_actions select @username,concat( CONVERT(varchar(10),DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0),120), '~',CONVERT(varchar(10),dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0)),120)) "Audit Trace Period",@database_name,@actions;
+ 
+ end;
+ 
+ select * from #l_actions;
+ 
+ 

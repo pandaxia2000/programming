@@ -1,0 +1,12 @@
+select  top 60000
+event_time,
+action_id,
+session_server_principal_name,
+server_instance_name,
+database_name,
+object_name,
+database_name,
+statement
+from [DB_AUDIT_LOGS].[dbo].[last_month_records_permissionchange]
+where action_id in ('########') and event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0));

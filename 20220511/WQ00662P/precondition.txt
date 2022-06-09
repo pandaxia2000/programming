@@ -1,0 +1,90 @@
+drop table if exists [DB_AUDIT_LOGS].[dbo].[last_month_records_loginout];
+drop table if exists [DB_AUDIT_LOGS].[dbo].[last_month_records_datachange];
+drop table if exists [DB_AUDIT_LOGS].[dbo].[last_month_records_permissionchange];
+
+select 
+	af.event_time,
+	af.action_id,
+	af.session_server_principal_name,
+	af.server_principal_name,
+	af.server_instance_name,
+	af.database_name,
+	af.schema_name,
+	af.object_name,
+	af.statement into [DB_AUDIT_LOGS].[dbo].[last_month_records_loginout]
+from fn_get_audit_file ('E:\Audit\Audit_MSCRM_All_login_logout_*',default,default) af	
+where event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0));
+
+select 
+	af.event_time,
+	af.action_id,
+	af.session_server_principal_name,
+	af.server_principal_name,
+	af.server_instance_name,
+	af.database_name,
+	af.schema_name,
+	af.object_name,
+	af.statement into [DB_AUDIT_LOGS].[dbo].[last_month_records_datachange]
+from fn_get_audit_file ('E:\Audit\Audit_all_data_change_*',default,default) af	
+where event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0));
+
+select 
+	af.event_time,
+	af.action_id,
+	af.session_server_principal_name,
+	af.server_principal_name,
+	af.server_instance_name,
+	af.database_name,
+	af.schema_name,
+	af.object_name,
+	af.statement into [DB_AUDIT_LOGS].[dbo].[last_month_records_permissionchange]
+from fn_get_audit_file ('E:\Audit\Audit_MSCRM_Permission_Changes_*',default,default) af	
+where event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0));
+
+
+
+
+
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_loginout];
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_loginout_last_month];
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_datachange];
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_datachange_last_month];
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_Permission_Changes];
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_Permission_Changes_last_month];
+DROP TABLE IF EXISTS [tempdb].[dbo].[userlist];
+
+select distinct action_id, session_server_principal_name,database_name into #all_loginout
+from [DB_AUDIT_LOGS].[dbo].[last_month_records_loginout]
+where event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0));
+
+select * into [tempdb].[dbo].[all_loginout] from #all_loginout;
+
+
+
+
+select distinct action_id, session_server_principal_name,database_name into #all_datachange
+from [DB_AUDIT_LOGS].[dbo].[last_month_records_datachange]
+where event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0));
+
+select * into [tempdb].[dbo].[all_datachange] from #all_datachange;
+
+
+
+
+select distinct action_id, session_server_principal_name,database_name into #all_Permission_Changes
+from [DB_AUDIT_LOGS].[dbo].[last_month_records_permissionchange]
+where event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0));
+
+select * into [tempdb].[dbo].[all_Permission_Changes] from #all_Permission_Changes;
+
+USE [DB_AUDIT_LOGS]
+
+DBCC SHRINKFILE (N'DB_AUDIT_LOGS_log' , 0,TRUNCATEONLY)    
+
+commit;

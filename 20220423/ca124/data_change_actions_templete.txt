@@ -1,0 +1,14 @@
+select 	top 60000
+	af.event_time,
+	af.action_id,
+	af.session_server_principal_name,
+	   af.server_principal_name,
+	   af.server_instance_name,
+	   af.database_name,
+	   af.schema_name,
+	   af.object_name,
+	   af.statement,
+           af.database_name
+from [DB_AUDIT_LOGS].[dbo].[last_month_records_datachange] af	
+where action_id in ('########') and event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0));

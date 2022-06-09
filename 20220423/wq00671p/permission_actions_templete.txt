@@ -1,0 +1,15 @@
+select  top 60000
+event_time,
+action_id,
+session_server_principal_name,
+server_instance_name,
+database_name,
+object_name,
+database_name,
+statement
+from [DB_AUDIT_LOGS].[dbo].[last_month_records_permissionchange] af
+where action_id in ('########') and event_time>=convert(varchar(10),getdate()-30,120)
+and af.server_principal_name like 'ONEABBOTT%'
+and af.server_principal_name not like '%SVC%'
+and af.server_principal_name not like '%$%'
+and af.server_principal_name not like '%PANCX15%';

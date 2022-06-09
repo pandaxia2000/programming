@@ -1,0 +1,86 @@
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_loginout];
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_loginout_last_month];
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_datachange];
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_datachange_last_month];
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_Permission_Changes];
+DROP TABLE IF EXISTS [tempdb].[dbo].[all_Permission_Changes_last_month];
+DROP TABLE IF EXISTS [tempdb].[dbo].[userlist];
+
+select distinct action_id, session_server_principal_name into #all_loginout
+from fn_get_audit_file((SELECT SUBSTRING(audit_file_path,0,charindex(name,audit_file_path))+name+'*'
+  FROM [sys].[dm_server_audit_status]
+  where name like '%logout%'),default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+select * into [tempdb].[dbo].[all_loginout] from #all_loginout;
+
+select distinct action_id, session_server_principal_name into #all_loginout_last_month
+from fn_get_audit_file((SELECT SUBSTRING(audit_file_path,0,charindex(name,audit_file_path))+name+'*'
+  FROM [sys].[dm_server_audit_status]
+  where name like '%logout%'),default,default)
+where datediff(day,event_time,getdate()) between 30 and 60;
+
+select * into [tempdb].[dbo].[all_loginout_last_month] from #all_loginout_last_month;
+
+
+
+
+select distinct action_id, session_server_principal_name into #all_datachange
+from fn_get_audit_file((SELECT SUBSTRING(audit_file_path,0,charindex(name,audit_file_path))+name+'*'
+  FROM [sys].[dm_server_audit_status]
+  where name like '%data_change%'),default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+select * into [tempdb].[dbo].[all_datachange] from #all_datachange;
+
+select distinct action_id, session_server_principal_name into #all_datachange_last_month
+from fn_get_audit_file((SELECT SUBSTRING(audit_file_path,0,charindex(name,audit_file_path))+name+'*'
+  FROM [sys].[dm_server_audit_status]
+  where name like '%data_change%'),default,default)
+where datediff(day,event_time,getdate()) between 30 and 60;
+
+select * into [tempdb].[dbo].[all_datachange_last_month] from #all_datachange_last_month;
+
+
+
+
+
+select distinct action_id, session_server_principal_name into #all_Permission_Changes
+from fn_get_audit_file((SELECT SUBSTRING(audit_file_path,0,charindex(name,audit_file_path))+name+'*'
+  FROM [sys].[dm_server_audit_status]
+  where name like '%Permission%'),default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+select * into [tempdb].[dbo].[all_Permission_Changes] from #all_Permission_Changes;
+
+select distinct action_id, session_server_principal_name into #all_Permission_Changes_last_month
+from fn_get_audit_file((SELECT SUBSTRING(audit_file_path,0,charindex(name,audit_file_path))+name+'*'
+  FROM [sys].[dm_server_audit_status]
+  where name like '%Permission%'),default,default)
+where datediff(day,event_time,getdate()) between 30 and 60;
+
+select * into [tempdb].[dbo].[all_Permission_Changes_last_month] from #all_Permission_Changes_last_month;
+
+
+
+
+
+select aa.* into #userlist from 
+(select a.name from sys.server_principals a 
+where a.is_disabled=0 and type in ('U','S')
+union
+select b.session_server_principal_name from [tempdb].[dbo].[all_loginout] b
+union
+select c.session_server_principal_name from [tempdb].[dbo].[all_loginout_last_month] c
+union
+select d.session_server_principal_name from [tempdb].[dbo].[all_datachange] d
+union
+select e.session_server_principal_name from [tempdb].[dbo].[all_datachange_last_month] e
+union
+select f.session_server_principal_name from [tempdb].[dbo].[all_Permission_Changes] f
+union
+select g.session_server_principal_name from [tempdb].[dbo].[all_Permission_Changes_last_month] g) aa;
+
+select * into [tempdb].[dbo].[userlist] from #userlist;
+
+commit;

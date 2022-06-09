@@ -1,0 +1,5 @@
+select distinct action_id from fn_get_audit_file ((SELECT SUBSTRING(audit_file_path,0,charindex(name,audit_file_path))+name
+  FROM [sys].[dm_server_audit_status]
+  where name like '%Permission%'),default,default) af 
+
+where event_time>=convert(varchar(10),getdate()-30,120);

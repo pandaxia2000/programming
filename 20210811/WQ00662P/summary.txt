@@ -1,0 +1,299 @@
+use tempdb
+
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'all_loginout' AND TABLE_SCHEMA = 'dbo')
+   drop table [tempdb].[dbo].[all_loginout]
+go
+
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'all_loginout_last_month' AND TABLE_SCHEMA = 'dbo')
+   drop table [tempdb].[dbo].[all_loginout_last_month]
+go
+
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'all_datachange' AND TABLE_SCHEMA = 'dbo')
+   drop table [tempdb].[dbo].[all_datachange]
+go
+
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'all_datachange_last_month' AND TABLE_SCHEMA = 'dbo')
+   drop table [tempdb].[dbo].[all_datachange_last_month]
+go
+
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'all_Permission_Changes' AND TABLE_SCHEMA = 'dbo')
+   drop table [tempdb].[dbo].[all_Permission_Changes]
+go
+
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'all_Permission_Changes_last_month' AND TABLE_SCHEMA = 'dbo')
+   drop table [tempdb].[dbo].[all_Permission_Changes_last_month]
+go
+
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'userlist' AND TABLE_SCHEMA = 'dbo')
+   drop table [tempdb].[dbo].[userlist]
+go
+
+
+select distinct action_id, session_server_principal_name into [tempdb].[dbo].[all_loginout]
+from fn_get_audit_file('E:\Audit\*All_login_logout*',default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+
+select distinct action_id, session_server_principal_name into [tempdb].[dbo].[all_loginout_last_month]
+from fn_get_audit_file('E:\Audit\*All_login_logout*',default,default)
+where datediff(day,event_time,getdate()) between 30 and 60;
+
+
+select distinct action_id, session_server_principal_name into [tempdb].[dbo].[all_datachange]
+from fn_get_audit_file('E:\Audit\Audit_all_data_change_*',default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+select distinct action_id, session_server_principal_name into [tempdb].[dbo].[all_datachange_last_month]
+from fn_get_audit_file('E:\Audit\Audit_all_data_change_*',default,default)
+where datediff(day,event_time,getdate()) between 30 and 60;
+
+
+select distinct action_id, session_server_principal_name into [tempdb].[dbo].[all_Permission_Changes]
+from fn_get_audit_file('E:\Audit\Audit_MSCRM_Permission_Changes*',default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+select distinct action_id, session_server_principal_name into [tempdb].[dbo].[all_Permission_Changes_last_month]
+from fn_get_audit_file('E:\Audit\Audit_MSCRM_Permission_Changes*',default,default)
+where datediff(day,event_time,getdate()) between 30 and 60;
+
+
+
+select aa.* into [tempdb].[dbo].[userlist] from 
+(select a.name from sys.server_principals a 
+where a.is_disabled=0 and type in ('U','S')
+union
+select b.session_server_principal_name from #all_loginout b
+union
+select c.session_server_principal_name from #all_loginout_last_month c
+union
+select d.session_server_principal_name from #all_datachange d
+union
+select e.session_server_principal_name from #all_datachange_last_month e
+union
+select f.session_server_principal_name from #all_Permission_Changes f
+union
+select g.session_server_principal_name from #all_Permission_Changes_last_month g) aa;
+
+declare @name nvarchar(50)
+declare @num int
+DECLARE @SQL NVARCHAR(500)
+
+create table #datachange_actions (username nvarchar(500),action_id nvarchar(500))
+
+set @num=0
+declare cursorTemp  cursor for select [session_server_principal_name] from [tempdb].[dbo].[all_datachange]
+open cursorTemp
+fetch next from cursorTemp into @name 
+while @@FETCH_STATUS=0
+	begin
+	    SELECT @SQL=ISNULL(@SQL+';','')+a.[action_id] FROM [tempdb].[dbo].[all_datachange] a WHERE a.[session_server_principal_name]=@name
+		insert into #datachange_actions select a.[session_server_principal_name],@SQL "action_id" from [tempdb].[dbo].[all_datachange] a where a.[session_server_principal_name]=@name
+		set @num =@num+1
+		set @SQL=NULL
+		fetch next from cursorTemp into @name 
+	end
+close cursorTemp
+DEALLOCATE cursorTemp
+select distinct * into #datachange_actions_distinct from #datachange_actions;
+
+set @name=null
+set @num=null
+set @sql=null
+
+create table #Permission_Changes_actions (username nvarchar(500),action_id nvarchar(500))
+
+set @num=0
+declare cursorTemp  cursor for select [session_server_principal_name] from [dbo].[all_Permission_Changes]
+open cursorTemp
+fetch next from cursorTemp into @name 
+while @@FETCH_STATUS=0
+	begin
+	    SELECT @SQL=ISNULL(@SQL+';','')+a.[action_id] FROM [dbo].[all_Permission_Changes] a WHERE a.[session_server_principal_name]=@name
+		insert into #Permission_Changes_actions select a.[session_server_principal_name],@SQL "action_id" from [tempdb].[dbo].[all_datachange] a where a.[session_server_principal_name]=@name
+		set @num =@num+1
+		set @SQL=NULL
+		fetch next from cursorTemp into @name 
+	end
+close cursorTemp
+DEALLOCATE cursorTemp
+select distinct * into #Permission_actions_distinct from #Permission_Changes_actions;
+
+set @name=null
+set @num=null
+set @sql=null
+
+create table #loginout_actions (username nvarchar(500),action_id nvarchar(500))
+
+set @num=0
+declare cursorTemp  cursor for select [session_server_principal_name] from [dbo].[all_loginout]
+open cursorTemp
+fetch next from cursorTemp into @name 
+while @@FETCH_STATUS=0
+	begin
+	    SELECT @SQL=ISNULL(@SQL+';','')+a.[action_id] FROM [dbo].[all_loginout] a WHERE a.[session_server_principal_name]=@name
+		insert into #loginout_actions select a.[session_server_principal_name],@SQL "action_id" from [tempdb].[dbo].[all_loginout] a where a.[session_server_principal_name]=@name
+		set @num =@num+1
+		set @SQL=NULL
+		fetch next from cursorTemp into @name 
+	end
+close cursorTemp
+DEALLOCATE cursorTemp
+select distinct * into #loginout_actions_distinct from #loginout_actions;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+select * from
+(
+select xx.name,xx.[Audit Trace Period],xx.datachange_action,
+yy.permission_action,zz.loginout_action,xx.type,xx.is_disabled,xx.create_date,xx.modify_date,
+'comment'= case when exists (select 1 from sys.server_principals g where g.name=xx.name) then '' else 'Come from local administrators group which is added by global team' end
+from
+(select a.name,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+datachange_actions.action_id datachange_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from sys.server_principals a left join #datachange_actions_distinct datachange_actions on a.name=datachange_actions.username
+where  a.type in ('U','S')
+union
+select datachange_actions.username,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+datachange_actions.action_id datachange_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from #datachange_actions_distinct datachange_actions left join sys.server_principals a on a.name=datachange_actions.username where datachange_actions.username<>'') xx
+
+left join 
+
+(select a.name,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+Permission_actions.action_id Permission_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from sys.server_principals a left join #Permission_actions_distinct Permission_actions on a.name=Permission_actions.username
+where  a.type in ('U','S')
+union
+select Permission_actions.username,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+Permission_actions.action_id Permission_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from #Permission_actions_distinct Permission_actions left join sys.server_principals a on a.name=Permission_actions.username where Permission_actions.username<>'') yy
+on xx.name=yy.name
+
+left join 
+
+(select a.name,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+loginout_actions.action_id loginout_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from sys.server_principals a left join #loginout_actions_distinct loginout_actions on a.name=loginout_actions.username
+where  a.type in ('U','S')
+union
+select loginout_actions.username,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+loginout_actions.action_id loginout_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from #loginout_actions_distinct loginout_actions left join sys.server_principals a on a.name=loginout_actions.username where loginout_actions.username<>'') zz
+on xx.name=zz.name
+
+union
+
+select yy.name,yy.[Audit Trace Period],xx.datachange_action,
+yy.permission_action,zz.loginout_action,yy.type,yy.is_disabled,yy.create_date,yy.modify_date,
+'comment'= case when exists (select 1 from sys.server_principals g where g.name=xx.name) then '' else 'Come from local administrators group which is added by global team' end
+from
+(select a.name,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+datachange_actions.action_id datachange_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from sys.server_principals a left join #datachange_actions_distinct datachange_actions on a.name=datachange_actions.username
+where  a.type in ('U','S')
+union
+select datachange_actions.username,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+datachange_actions.action_id datachange_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from #datachange_actions_distinct datachange_actions left join sys.server_principals a on a.name=datachange_actions.username where datachange_actions.username<>'') xx
+
+right join 
+
+(select a.name,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+Permission_actions.action_id Permission_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from sys.server_principals a left join #Permission_actions_distinct Permission_actions on a.name=Permission_actions.username
+where  a.type in ('U','S')
+union
+select Permission_actions.username,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+Permission_actions.action_id Permission_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from #Permission_actions_distinct Permission_actions left join sys.server_principals a on a.name=Permission_actions.username where Permission_actions.username<>'') yy
+on xx.name=yy.name
+
+right join 
+
+(select a.name,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+loginout_actions.action_id loginout_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from sys.server_principals a left join #loginout_actions_distinct loginout_actions on a.name=loginout_actions.username
+where  a.type in ('U','S')
+union
+select loginout_actions.username,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+loginout_actions.action_id loginout_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from #loginout_actions_distinct loginout_actions left join sys.server_principals a on a.name=loginout_actions.username where loginout_actions.username<>'') zz
+on xx.name=zz.name
+
+
+union
+
+
+
+
+select zz.name,zz.[Audit Trace Period],xx.datachange_action,
+yy.permission_action,zz.loginout_action,zz.type,zz.is_disabled,zz.create_date,zz.modify_date,
+'comment'= case when exists (select 1 from sys.server_principals g where g.name=xx.name) then '' else 'Come from local administrators group which is added by global team' end
+from
+(select a.name,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+datachange_actions.action_id datachange_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from sys.server_principals a left join #datachange_actions_distinct datachange_actions on a.name=datachange_actions.username
+where  a.type in ('U','S')
+union
+select datachange_actions.username,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+datachange_actions.action_id datachange_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from #datachange_actions_distinct datachange_actions left join sys.server_principals a on a.name=datachange_actions.username where datachange_actions.username<>'') xx
+
+
+right join
+
+(select a.name,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+Permission_actions.action_id Permission_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from sys.server_principals a left join #Permission_actions_distinct Permission_actions on a.name=Permission_actions.username
+where  a.type in ('U','S')
+union
+select Permission_actions.username,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+Permission_actions.action_id Permission_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from #Permission_actions_distinct Permission_actions left join sys.server_principals a on a.name=Permission_actions.username where Permission_actions.username<>'') yy
+on xx.name=yy.name
+
+right join
+
+(select a.name,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+loginout_actions.action_id loginout_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from sys.server_principals a left join #loginout_actions_distinct loginout_actions on a.name=loginout_actions.username
+where  a.type in ('U','S')
+union
+select loginout_actions.username,concat(CONVERT(varchar(10),GETDATE(),120) , '~',CONVERT(varchar(10),GETDATE()-30,120)) "Audit Trace Period",
+loginout_actions.action_id loginout_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from #loginout_actions_distinct loginout_actions left join sys.server_principals a on a.name=loginout_actions.username where loginout_actions.username<>'') zz
+on xx.name=zz.name
+
+) final where name is not null
+

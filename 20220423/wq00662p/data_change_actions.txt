@@ -1,0 +1,1 @@
+select distinct action_id from [tempdb].[dbo].[all_datachange]

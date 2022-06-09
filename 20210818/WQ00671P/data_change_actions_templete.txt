@@ -1,0 +1,12 @@
+select 	top 1000
+	af.event_time,
+	af.action_id,
+	af.session_server_principal_name,
+	   af.server_principal_name,
+	   af.server_instance_name,
+	   af.database_name,
+	   af.schema_name,
+	   af.object_name,
+	   af.statement
+from fn_get_audit_file ('H:\Audit\Audit_all_data_change_*',default,default) af	
+where action_id in ('########') and event_time>=convert(varchar(10),getdate()-30,120);

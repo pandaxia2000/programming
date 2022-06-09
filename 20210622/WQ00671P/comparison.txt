@@ -1,0 +1,142 @@
+select distinct action_id, session_server_principal_name into #all_loginout1
+from fn_get_audit_file('H:\Audit\*login_logout*',default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+
+select distinct action_id, session_server_principal_name into #all_loginout_last_month1
+from fn_get_audit_file('H:\Audit\*login_logout*',default,default)
+where datediff(day,event_time,getdate()) between 30 and 60;
+
+
+select distinct action_id, session_server_principal_name into #all_datachange1
+from fn_get_audit_file('H:\Audit\Audit_all_data_change_*',default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+select distinct action_id, session_server_principal_name into #all_datachange_last_month1
+from fn_get_audit_file('H:\Audit\Audit_all_data_change_*',default,default)
+where datediff(day,event_time,getdate()) between 30 and 60;
+
+
+select distinct action_id, session_server_principal_name into #all_Permission_Changes1
+from fn_get_audit_file('H:\audit\*Permission_Change_*',default,default)
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+select distinct action_id, session_server_principal_name into #all_Permission_Changes_last_month1
+from fn_get_audit_file('H:\audit\*Permission_Change_*',default,default)
+where datediff(day,event_time,getdate()) between 30 and 60;
+
+
+
+select aa.* into #userlist1 from 
+(select a.name from sys.server_principals a 
+where a.is_disabled=0 and type in ('U','S')
+union
+select b.session_server_principal_name from #all_loginout1 b
+union
+select c.session_server_principal_name from #all_loginout_last_month1 c
+union
+select d.session_server_principal_name from #all_datachange1 d
+union
+select e.session_server_principal_name from #all_datachange_last_month1 e
+union
+select f.session_server_principal_name from #all_Permission_Changes1 f
+union
+select g.session_server_principal_name from #all_Permission_Changes_last_month1 g) aa;
+
+
+
+
+select b.name,
+'AUSC'=case when b.AUSC=b.AUSC_last_month then '0' else 'changed' end,
+'LGIF'=case when b.LGIF=b.LGIF_last_month then '0' else 'changed' end,
+'LGIS'=case when b.LGIS=b.LGIS_last_month then '0' else 'changed' end,
+'LGO'=case when b.LGO=b.LGO_last_month then '0' else 'changed' end,
+'DAGF'=case when b.DAGF=b.DAGF_last_month then '0' else 'changed' end,
+'DAGL'=case when b.DAGL=b.DAGL_last_month then '0' else 'changed' end,
+'DAGS'=case when b.DAGS=b.DAGS_last_month then '0' else 'changed' end,
+'DL'=case when b.DL=b.DL_last_month then '0' else 'changed' end,
+'EX'=case when b.EX=b.EX_last_month then '0' else 'changed' end,
+'INS'=case when b.INS=b.INS_last_month then '0' else 'changed' end,
+'UP'=case when b.UP=b.UP_last_month then '0' else 'changed' end,
+'ADDP'=case when b.ADDP=b.ADDP_last_month then '0' else 'changed' end,
+'GRDB'=case when b.GRDB=b.GRDB_last_month then '0' else 'changed' end,
+'GRDO'=case when b.GRDO=b.GRDO_last_month then '0' else 'changed' end,
+'GRO'=case when b.GRO=b.GRO_last_month then '0' else 'changed' end,
+'IMDP'=case when b.IMDP=b.IMDP_last_month then '0' else 'changed' end,
+'MNDB'=case when b.MNDB=b.MNDB_last_month then '0' else 'changed' end,
+'MNDO'=case when b.MNDO=b.MNDO_last_month then '0' else 'changed' end,
+'MNDP'=case when b.MNDP=b.MNDP_last_month then '0' else 'changed' end,
+'MNO'=case when b.MNO=b.MNO_last_month then '0' else 'changed' end,
+'OPDB'=case when b.OPDB=b.OPDB_last_month then '0' else 'changed' end,
+'TODB'=case when b.TODB=b.TODB_last_month then '0' else 'changed' end,
+'TODO'=case when b.TODO=b.TODO_last_month then '0' else 'changed' end,
+'TOO'=case when b.TOO=b.TOO_last_month then '0' else 'changed' end,
+'AL'=case when b.AL=b.AL_last_month then '0' else 'changed' end,
+'CR'=case when b.CR=b.CR_last_month then '0' else 'changed' end,
+'DR'=case when b.DR=b.DR_last_month then '0' else 'changed' end,
+'G'=case when b.G=b.G_last_month then '0' else 'changed' end,
+'VDST'=case when b.VDST=b.VDST_last_month then '0' else 'changed' end,
+'VW'=case when b.VW=b.VW_last_month then '0' else 'changed' end
+ from 
+(select a.name,
+'AUSC'= case when exists (select 1 from #all_loginout1 AUSC where AUSC.session_server_principal_name=a.name and AUSC.action_id='AUSC') then'Y' else 'N' end,
+'AUSC_last_month'= case when exists (select 1 from #all_loginout_last_month1 AUSC_last_month where AUSC_last_month.session_server_principal_name=a.name and AUSC_last_month.action_id='AUSC') then'Y' else 'N' end,
+'LGIF'= case when exists (select 1 from #all_loginout1  LGIF where LGIF.session_server_principal_name=a.name and LGIF.action_id='LGIF') then'Y' else 'N' end,
+'LGIF_last_month'= case when exists (select 1 from #all_loginout_last_month1 LGIF_last_month where LGIF_last_month.session_server_principal_name=a.name and LGIF_last_month.action_id='LGIF') then'Y' else 'N' end,
+'LGIS'= case when exists (select 1 from #all_loginout1  LGIS where LGIS.session_server_principal_name=a.name and LGIS.action_id='LGIS') then'Y' else 'N' end,
+'LGIS_last_month'= case when exists (select 1 from #all_loginout_last_month1 LGIS_last_month where LGIS_last_month.session_server_principal_name=a.name and LGIS_last_month.action_id='LGIS') then'Y' else 'N' end,
+'LGO'= case when exists (select 1 from #all_loginout1 LGO where LGO.session_server_principal_name=a.name and LGO.action_id='LGO') then'Y' else 'N' end,
+'LGO_last_month'= case when exists (select 1 from #all_loginout_last_month1 LGO_last_month where LGO_last_month.session_server_principal_name=a.name and LGO_last_month.action_id='LGO') then'Y' else 'N' end,
+'DAGF'= case when exists (select 1 from #all_loginout1  DAGF where DAGF.session_server_principal_name=a.name and DAGF.action_id='DAGF') then'Y' else 'N' end,
+'DAGF_last_month'= case when exists (select 1 from #all_loginout_last_month1 DAGF_last_month where DAGF_last_month.session_server_principal_name=a.name and DAGF_last_month.action_id='DAGF') then'Y' else 'N' end,
+'DAGL'= case when exists (select 1 from #all_loginout1  DAGL where DAGL.session_server_principal_name=a.name and DAGL.action_id='DAGL') then'Y' else 'N' end,
+'DAGL_last_month'= case when exists (select 1 from #all_loginout_last_month1 DAGL_last_month where DAGL_last_month.session_server_principal_name=a.name and DAGL_last_month.action_id='DAGL') then'Y' else 'N' end,
+'DAGS'= case when exists (select 1 from #all_loginout1  DAGS where DAGS.session_server_principal_name=a.name and DAGS.action_id='DAGS') then'Y' else 'N' end,
+'DAGS_last_month'= case when exists (select 1 from #all_loginout_last_month1 DAGS_last_month where DAGS_last_month.session_server_principal_name=a.name and DAGS_last_month.action_id='DAGS') then'Y' else 'N' end,
+'DL'= case when exists (select 1 from #all_datachange1 DL  where DL.session_server_principal_name=a.name and DL.action_id='DL') then'Y' else 'N' end,
+'DL_last_month'= case when exists (select 1 from #all_datachange_last_month1 DL_last_month where DL_last_month.session_server_principal_name=a.name and DL_last_month.action_id='DL') then'Y' else 'N' end,
+'EX'= case when exists (select 1 from #all_datachange1 EX  where EX.session_server_principal_name=a.name and EX.action_id='EX') then'Y' else 'N' end,
+'EX_last_month'= case when exists (select 1 from #all_datachange_last_month1 EX_last_month where EX_last_month.session_server_principal_name=a.name and EX_last_month.action_id='EX') then'Y' else 'N' end,
+'INS'= case when exists (select 1 from #all_datachange1 INS where INS.session_server_principal_name=a.name and INS.action_id='IN') then'Y' else 'N' end,
+'INS_last_month'= case when exists (select 1 from #all_datachange_last_month1 IN_last_month where IN_last_month.session_server_principal_name=a.name and IN_last_month.action_id='IN') then'Y' else 'N' end,
+'UP'= case when exists (select 1 from #all_datachange1 UP  where UP.session_server_principal_name=a.name and UP.action_id='UP') then'Y' else 'N' end,
+'UP_last_month'= case when exists (select 1 from #all_datachange_last_month1 UP_last_month where UP_last_month.session_server_principal_name=a.name and UP_last_month.action_id='UP') then'Y' else 'N' end,
+'ADDP'= case when exists (select 1 from #all_Permission_Changes1 ADDP where ADDP.session_server_principal_name=a.name and ADDP.action_id='ADDP') then'Y' else 'N' end,
+'ADDP_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 ADDP_last_month where ADDP_last_month.session_server_principal_name=a.name and ADDP_last_month.action_id='ADDP') then'Y' else 'N' end,
+'GRDB'= case when exists (select 1 from #all_Permission_Changes1 GRDB where GRDB.session_server_principal_name=a.name and GRDB.action_id='GRDB') then'Y' else 'N' end,
+'GRDB_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 GRDB_last_month where GRDB_last_month.session_server_principal_name=a.name and GRDB_last_month.action_id='GRDB') then'Y' else 'N' end,
+'GRDO'= case when exists (select 1 from #all_Permission_Changes1 GRDO where GRDO.session_server_principal_name=a.name and GRDO.action_id='GRDO') then'Y' else 'N' end,
+'GRDO_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 GRDO_last_month where GRDO_last_month.session_server_principal_name=a.name and GRDO_last_month.action_id='GRDO') then'Y' else 'N' end,
+'GRO'= case when exists (select 1 from #all_Permission_Changes1 GRO where GRO.session_server_principal_name=a.name and GRO.action_id='GRO') then'Y' else 'N' end,
+'GRO_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 GRO_last_month where GRO_last_month.session_server_principal_name=a.name and GRO_last_month.action_id='GRO') then'Y' else 'N' end,
+'IMDP'= case when exists (select 1 from #all_Permission_Changes1 IMDP where IMDP.session_server_principal_name=a.name and IMDP.action_id='IMDP') then'Y' else 'N' end,
+'IMDP_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 IMDP_last_month where IMDP_last_month.session_server_principal_name=a.name and IMDP_last_month.action_id='IMDP') then'Y' else 'N' end,
+'MNDB'= case when exists (select 1 from #all_Permission_Changes1 MNDB where MNDB.session_server_principal_name=a.name and MNDB.action_id='MNDB') then'Y' else 'N' end,
+'MNDB_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 MNDB_last_month where MNDB_last_month.session_server_principal_name=a.name and MNDB_last_month.action_id='MNDB') then'Y' else 'N' end,
+'MNDO'= case when exists (select 1 from #all_Permission_Changes1 MNDO where MNDO.session_server_principal_name=a.name and MNDO.action_id='MNDO') then'Y' else 'N' end,
+'MNDO_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 MNDO_last_month where MNDO_last_month.session_server_principal_name=a.name and MNDO_last_month.action_id='MNDO') then'Y' else 'N' end,
+'MNDP'= case when exists (select 1 from #all_Permission_Changes1 MNDP where MNDP.session_server_principal_name=a.name and MNDP.action_id='MNDP') then'Y' else 'N' end,
+'MNDP_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 MNDP_last_month where MNDP_last_month.session_server_principal_name=a.name and MNDP_last_month.action_id='MNDP') then'Y' else 'N' end,
+'MNO'= case when exists (select 1 from #all_Permission_Changes1 MNO where MNO.session_server_principal_name=a.name and MNO.action_id='MNO') then'Y' else 'N' end,
+'MNO_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 MNO_last_month where MNO_last_month.session_server_principal_name=a.name and MNO_last_month.action_id='MNO') then'Y' else 'N' end,
+'OPDB'= case when exists (select 1 from #all_Permission_Changes1 OPDB where OPDB.session_server_principal_name=a.name and OPDB.action_id='OPDB') then'Y' else 'N' end,
+'OPDB_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 OPDB_last_month where OPDB_last_month.session_server_principal_name=a.name and OPDB_last_month.action_id='OPDB') then'Y' else 'N' end,
+'TODB'= case when exists (select 1 from #all_Permission_Changes1 TODB where TODB.session_server_principal_name=a.name and TODB.action_id='TODB') then'Y' else 'N' end,
+'TODB_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 TODB_last_month where TODB_last_month.session_server_principal_name=a.name and TODB_last_month.action_id='TODB') then'Y' else 'N' end,
+'TODO'= case when exists (select 1 from #all_Permission_Changes1 TODO where TODO.session_server_principal_name=a.name and TODO.action_id='TODO') then'Y' else 'N' end,
+'TODO_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 TODO_last_month where TODO_last_month.session_server_principal_name=a.name and TODO_last_month.action_id='TODO') then'Y' else 'N' end,
+'TOO'= case when exists (select 1 from #all_Permission_Changes1 TOO where TOO.session_server_principal_name=a.name and TOO.action_id='TOO') then'Y' else 'N' end,
+'TOO_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 TOO_last_month where TOO_last_month.session_server_principal_name=a.name and TOO_last_month.action_id='TOO') then'Y' else 'N' end,
+'AL'= case when exists (select 1 from #all_Permission_Changes1 AL where AL.session_server_principal_name=a.name and AL.action_id='AL') then'Y' else 'N' end,
+'AL_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 AL_last_month where AL_last_month.session_server_principal_name=a.name and AL_last_month.action_id='AL') then'Y' else 'N' end,
+'CR'= case when exists (select 1 from #all_Permission_Changes1 CR where CR.session_server_principal_name=a.name and CR.action_id='CR') then'Y' else 'N' end,
+'CR_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 CR_last_month where CR_last_month.session_server_principal_name=a.name and CR_last_month.action_id='CR') then'Y' else 'N' end,
+'DR'= case when exists (select 1 from #all_Permission_Changes1 DR where DR.session_server_principal_name=a.name and DR.action_id='DR') then'Y' else 'N' end,
+'DR_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 DR_last_month where DR_last_month.session_server_principal_name=a.name and DR_last_month.action_id='DR') then'Y' else 'N' end,
+'G'= case when exists (select 1 from #all_Permission_Changes1 G where G.session_server_principal_name=a.name and G.action_id='G') then'Y' else 'N' end,
+'G_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 G_last_month where G_last_month.session_server_principal_name=a.name and G_last_month.action_id='G') then'Y' else 'N' end,
+'VDST'= case when exists (select 1 from #all_Permission_Changes1 VDST where VDST.session_server_principal_name=a.name and VDST.action_id='VDST') then'Y' else 'N' end,
+'VDST_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 VDST_last_month where VDST_last_month.session_server_principal_name=a.name and VDST_last_month.action_id='VDST') then'Y' else 'N' end,
+'VW'= case when exists (select 1 from #all_Permission_Changes1 VW where VW.session_server_principal_name=a.name and VW.action_id='VW') then'Y' else 'N' end,
+'VW_last_month'= case when exists (select 1 from #all_Permission_Changes_last_month1 VW_last_month where VW_last_month.session_server_principal_name=a.name and VW_last_month.action_id='VW') then'Y' else 'N' end
+from #userlist1 a) b where len(b.name)>0

@@ -1,0 +1,64 @@
+declare @name nvarchar(50)
+declare @num int
+DECLARE @SQL NVARCHAR(500)
+
+create table #all_actions (username nvarchar(500),action_id nvarchar(500),database_name nvarchar(500))
+
+set @num=0
+declare cursorTemp  cursor for select [session_server_principal_name] from [master].[dbo].[all_actions]
+open cursorTemp
+fetch next from cursorTemp into @name 
+while @@FETCH_STATUS=0
+	begin
+	    SELECT @SQL=ISNULL(@SQL+';','')+a.[action_id] FROM [master].[dbo].[all_actions] a WHERE a.[session_server_principal_name]=@name
+		insert into #all_actions select a.[session_server_principal_name],@SQL "action_id",a.database_name from [master].[dbo].[all_actions] a where a.[session_server_principal_name]=@name
+		set @num =@num+1
+		set @SQL=NULL
+		fetch next from cursorTemp into @name 
+	end
+close cursorTemp
+DEALLOCATE cursorTemp
+select distinct * into #all_actions_distinct from #all_actions;
+
+
+
+
+
+
+
+
+select * from
+(
+select xx.name,xx.[Audit Trace Period],xx.database_name,xx.datachange_action,
+xx.type,xx.is_disabled,xx.create_date,xx.modify_date,
+'comment'= 
+case 
+when  xx.name like '%##' or xx.name like '%$' then 'application account'
+when xx.name in ('btsadmin') then 'Administrator'
+when exists (select 1 from sys.server_principals g where g.name=xx.name) then '' 
+else 'Come from local administrators group which is added by global team' 
+
+end
+from
+(select a.name,concat( CONVERT(varchar(10),GETDATE()-30,120), '~',CONVERT(varchar(10),GETDATE(),120)) "Audit Trace Period",all_actions.database_name,
+all_actions.action_id all_actions,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from sys.server_principals a left join #all_actions_distinct all_actions on a.name=all_actions.username
+where  a.type in ('U','S')
+union
+select all_actions.username,concat( CONVERT(varchar(10),GETDATE()-30,120), '~',CONVERT(varchar(10),GETDATE(),120)) "Audit Trace Period",
+all_actions.database_name,
+all_actions.action_id datachange_action,
+a.type,a.is_disabled,a.create_date,a.modify_date 
+from #all_actions_distinct all_actions left join sys.server_principals a on a.name=all_actions.username where all_actions.username<>'') xx
+
+) final where name is not null
+
+
+
+
+
+
+
+
+

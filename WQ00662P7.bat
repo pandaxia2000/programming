@@ -1,0 +1,2 @@
+cd C:\Users\a-pancx15\Downloads\PortablePython_2.7.6.1\PortablePython_2.7.6.1\App
+C:\Users\a-pancx15\Downloads\PortablePython_2.7.6.1\PortablePython_2.7.6.1\App\python.exe WQ00662P7.py >> WQ00662P7.log

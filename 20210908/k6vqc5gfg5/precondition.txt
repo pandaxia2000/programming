@@ -1,0 +1,30 @@
+DROP TABLE IF EXISTS [master].[dbo].[all_actions];
+DROP TABLE IF EXISTS [master].[dbo].[all_actions_last_month];
+
+select distinct action_id, session_server_principal_name,database_name into #all_actions from fn_get_audit_file 
+('https://ca041audit.blob.core.chinacloudapi.cn/sqldbauditlogs/x19a5z7yr2/ABBOTTCRM/SqlDbAuditing_Audit_NoRetention',default,default) af
+where event_time>=convert(varchar(10),getdate()-30,120);
+
+select * into [master].[dbo].[all_actions] from #all_actions;
+
+select distinct action_id, session_server_principal_name,database_name into #all_actions_last_month from fn_get_audit_file 
+('https://ca041audit.blob.core.chinacloudapi.cn/sqldbauditlogs/x19a5z7yr2/ABBOTTCRM/SqlDbAuditing_Audit_NoRetention',default,default) af
+where datediff(day,event_time,getdate()) between 30 and 60;
+
+select * into [master].[dbo].[all_actions_last_month] from #all_actions_last_month;
+
+
+
+
+
+select aa.* into #userlist from 
+(select a.name from sys.server_principals a 
+where a.is_disabled=0 and type in ('U','S')
+union
+select f.session_server_principal_name from [master].[dbo].[all_actions] f
+union
+select g.session_server_principal_name from [master].[dbo].[all_actions_last_month] g) aa;
+
+select * into [master].[dbo].[userlist] from #userlist;
+
+GO

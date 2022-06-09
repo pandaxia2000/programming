@@ -1,0 +1,5 @@
+select distinct action_id from fn_get_audit_file ((SELECT SUBSTRING(audit_file_path,0,charindex(name,audit_file_path))+name
+  FROM [sys].[dm_server_audit_status]
+  where name like '%data_change%'),default,default) af
+where event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0));

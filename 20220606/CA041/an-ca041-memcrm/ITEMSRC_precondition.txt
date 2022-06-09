@@ -1,0 +1,20 @@
+drop table if exists [last_month_audit_records_for_privilege_accounts];
+
+commit;
+
+select 
+   	af.event_time,
+   	af.action_id,
+   	af.server_principal_name,
+   	af.server_instance_name,
+   	af.database_name,
+   	af.schema_name,
+   	af.object_name,
+   	af.statement into last_month_audit_records_for_privilege_accounts
+   from fn_get_audit_file ('https://anca041datalogprod.blob.core.chinacloudapi.cn/sqldbauditlogs/an-ca041-memcrm/ITEMSRC',default,default) af	
+   where event_time>=DATEADD(mm, DATEDIFF(m,0,getdate())-1, 0) 
+   and event_time<=dateadd(ms,-3,DATEADD(mm, DATEDIFF(m,0,getdate()), 0))
+   and server_principal_name in(
+   'SONGRX3');
+  
+commit;
